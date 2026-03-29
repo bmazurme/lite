@@ -5,6 +5,8 @@ import { Editor } from './Editor';
 import MarkdownPreview from './MarkdownPreview';
 import { useState } from 'react';
 
+import { Button, TextInput, Card } from '@gravity-ui/uikit';
+
 const App: React.FC = () => {
   const [value, setValue] = useState('');
   const toaster = new Toaster();
@@ -14,17 +16,27 @@ const App: React.FC = () => {
   };
 
   return (
-    <ThemeProvider theme="light">
+    <ThemeProvider theme="dark">
       <ToasterProvider toaster={toaster}>
         <ToasterComponent />
 
+        <TextInput placeholder="Title" size="l" />
+        <TextInput placeholder="Placeholder" size="l" />
+
         <Editor onSubmit={handleSubmit} />
-        <MarkdownPreview
-          getValue={() => value}
-          allowHTML={false}
-          breaks={true}
-          linkify={true}
-        />
+        <Button view="outlined" size="l">
+          Save
+          </Button>
+
+        <Card theme="normal" size="l">
+          <MarkdownPreview
+            getValue={() => value}
+            allowHTML={false}
+            breaks={true}
+            linkify={true}
+          />
+        </Card>
+
       </ToasterProvider>
     </ThemeProvider>
   );
