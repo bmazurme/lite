@@ -13,4 +13,11 @@
   margin-top: 20px;
   text-align: left;
   padding: 16px;
+  min-height: 100px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
