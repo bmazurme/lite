@@ -19,6 +19,9 @@ const Note = ({ value }: { value: string }) => {
         breaks={true}
         linkify={true}
       />
+      <Label theme="clear">Clear</Label>
+      <Label theme="clear">Clear</Label>
+      <Label theme="clear">Clear</Label>
     </Card>
   );
 };
