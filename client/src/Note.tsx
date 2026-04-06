@@ -10,18 +10,28 @@ const Note = ({ value }: { value: string }) => {
       size="l"
       className={style.preview}
     >
-      <Text variant="header-1">
+      <Text
+        variant="header-2"
+        className={style.title}
+      >
         some text
       </Text>
-      <MarkdownPreview
-        getValue={() => value}
-        allowHTML={true}
-        breaks={true}
-        linkify={true}
-      />
-      <Label theme="clear">Clear</Label>
-      <Label theme="clear">Clear</Label>
-      <Label theme="clear">Clear</Label>
+
+      <div className={style.markdown}>
+        <MarkdownPreview
+          getValue={() => value}
+          allowHTML={true}
+          breaks={true}
+          linkify={true}
+        />
+      </div>
+
+      <div className={style.labels}>
+        <Label theme="clear">Clear</Label>
+        <Label theme="clear">Clear</Label>
+        <Label theme="clear">Clear</Label>
+      </div>
+
     </Card>
   );
 };
