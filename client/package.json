@@ -10,16 +10,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@gravity-ui/graph": "^1.9.3",
     "@gravity-ui/markdown-editor": "^15.36.0",
-    "@gravity-ui/uikit": "^7.35.2",
     "lodash": "^4.17.23",
-    "marked": "^17.0.5",
+    "marked": "^18.0.0",
     "react": "^18.3.0",
-    "react-dom": "^18.3.0"
+    "react-dom": "^18.3.0",
+    "react-router-dom": "^7.14.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@gravity-ui/uikit": "^7.36.1",
     "@types/lodash": "^4.17.24",
     "@types/node": "^24.12.0",
     "@types/react": "^18.3.0",
@@ -29,6 +29,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
+    "patch-package": "^8.0.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.57.0",
     "vite": "^8.0.1"
