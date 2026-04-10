@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Button, Text } from '@gravity-ui/uikit';
 
-import Layout from '../../Layout';
+import Layout from '../../components/Layout/Layout';
 
 import style from './NotFoundPage.module.css';
 
