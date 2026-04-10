@@ -1,44 +1,85 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+// import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Pagination, Text,
   type PaginationProps, 
 } from '@gravity-ui/uikit';
 
-import Layout from '../../Layout';
+import Layout from '../../components/Layout/Layout';
 
 import style from './MainPage.module.css';
 
-const MainPage = ({ setTheme, theme }: { setTheme: React.Dispatch<React.SetStateAction<string>>; theme: string; }) => {
+const links = [{ id: 0, tag: 1 }, { id: 1, tag: 2 }, { id: 2, tag: 3 }];
+
+const MainPage = ({ setTheme, theme, page: forcedPage }: { setTheme: React.Dispatch<React.SetStateAction<string>>; theme: string; page?: number }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [state, setState] = useState({ page: 1, pageSize: 100 });
-  const handleUpdate: PaginationProps['onUpdate'] = (page, pageSize) =>
+  const pageFromUrl = parseInt(searchParams.get('page') || '1', 10);
+  // console.log(pageFromUrl, forcedPage);
+  const currentPage = forcedPage !== undefined ? forcedPage : pageFromUrl;
+  // console.log(currentPage);
+  const [state, setState] = useState({ page: currentPage, pageSize: 100 });
+  const handleUpdate: PaginationProps['onUpdate'] = (page, pageSize) => {
+    console.log(page, pageSize);
+    if (page === 1) {
+      // Переход на главную страницу
+      window.location.href = '/';
+    } else {
+      navigate(`/notes?page=${page}`);
+      // const newParams = new URLSearchParams(searchParams);
+      // newParams.set('page', page.toString());
+      // setSearchParams(newParams);
+    }
     setState((prevState) => ({ ...prevState, page, pageSize }));
+  }
+
+  // const handleChange = (name: string, value: string) => {
+  //   setSearchParams({
+  //     ...Object.fromEntries(searchParams),
+  //     [name]: value,
+  //   });
+  // };
+
+
+
+  // useEffect(() => {
+  //   handleChange('page', `${state.page}`);
+  //   // fetchData(+state.page);
+  // }, [state.page]);
+  // useEffect(() => {
+  //   console.log(state.page);
+
+  //   if (state.page === 1 && location.pathname === '/notes') {
+  //     setSearchParams({}, { replace: true }); // Убираем ?page=0 из URL
+  //   }
+  // }, [state.page, location.pathname, setSearchParams]);
+
+  // const changePage = (newPage) => {
+  //   // if (newPage === 0) {
+  //   //   // Переход на главную страницу
+  //   //   window.location.href = '/';
+  //   // } else {
+  //   //   const newParams = new URLSearchParams(searchParams);
+  //   //   newParams.set('page', newPage.toString());
+  //   //   setSearchParams(newParams);
+  //   // }
+  // };
 
   return (
     <Layout setTheme={setTheme} theme={theme}>
       <div className={style.container}>
+        {links.map((link) => (
         <Text
+          key={link.id}
           variant="header-1"
           className={style.link}
-          onClick={() => navigate('/note')}
+          onClick={() => navigate(`/note/${link.id}`)}
         >
-          Link
+          {`Link ${link.id}`}
         </Text>
-        <Text
-          variant="header-1"
-          className={style.link}
-          onClick={() => navigate('/note')}
-        >
-          Link
-        </Text>
-        <Text
-          variant="header-1"
-          className={style.link}
-          onClick={() => navigate('/note')}
-        >
-          Link
-        </Text>
+        ))}
+
 
         <Pagination
           page={state.page}
