@@ -6,21 +6,42 @@
   display: grid;
   grid-template-areas: "header" "markdown" "labels";
   grid-template-rows: minmax(80px, auto) 1fr auto;
+  gap: 16px;
 }
 
 .title {
   display: flex;
   padding: 16px 0;
+  align-items: center;
   border-bottom: 1px solid var(--g-color-line-generic);
 }
 
-.markdown{
-  margin-top: 20px;
-  margin-bottom: 40px;
+.markdown {
+  display: flex;
+  /* margin-top: 20px; */
+  /* margin-bottom: 20px; */
+  /* padding-bottom: 20px; */
 }
 
 .labels {
   display: flex;
   gap: 8px;
-  margin-bottom: 20px;
+  /* margin-bottom: 20px; */
+}
+
+.mh {
+  height: 120px;
+}
+.sh {
+  height: 60px;
+}
+
+.loading_title {
+  height: 80px;
+}
+.loading_body {
+  height: 160px;
+}
+.loading_labels {
+  height: 20px;
 }
