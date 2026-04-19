@@ -18,6 +18,7 @@ export class AuthController {
     return this.authService.login(req.user, response);
   }
 
+  @UseGuards(RefreshTokenGuard)
   @Post('refresh')
   async refreshToken(
     @Request() req: CustomRequest & { cookies?: { refreshToken?: string } },
