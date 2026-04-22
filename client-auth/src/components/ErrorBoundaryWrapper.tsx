@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { PropsWithChildren } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
@@ -9,19 +10,41 @@ import style from './ErrorBoundaryWrapper.module.css';
 type ErrorBoundaryWrapperProps = PropsWithChildren<unknown>;
 
 function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
+  const getErrorMessage = (): string => {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    
+    if (typeof error === 'string') {
+      return error;
+    }
+    
+    if (error && typeof error === 'object') {
+      if ('message' in error) {
+        return String((error as any).message);
+      }
+
+      if ('toString' in error && typeof (error as any).toString === 'function') {
+        return (error as any).toString();
+      }
+    }
+
+    return 'Произошла непредвиденная ошибка';
+  };
+
+  const errorMessage = getErrorMessage();
   const navigate = useNavigate();
   const navigateHome = () => {
     resetErrorBoundary();
     navigate('/');
   };
   
-  console.log(error);
   return (
     <ContentWrapper
       children={(
-        <div className={style.boundary}>
+        <section>
           <h2 className={style.title}>APP-ERROR</h2>
-          {/* <p className={style.message}>{error.message}</p> */}
+          <p className={style.message}>{errorMessage}</p>
           <div className={style.block}>
             Try to
             <button
@@ -35,7 +58,7 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
               Go to homepage
             </button>
           </div>
-        </div>
+        </section>
       )}
     />
   );
@@ -43,7 +66,10 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
 
 export default function ErrorBoundaryWrapper({ children }: ErrorBoundaryWrapperProps) {
   return (
-    <ErrorBoundary onReset={() => console.log('reset')} FallbackComponent={ErrorFallback}>
+    <ErrorBoundary
+      onReset={() => console.log('reset')}
+      FallbackComponent={ErrorFallback}
+    >
       {children}
     </ErrorBoundary>
   );
