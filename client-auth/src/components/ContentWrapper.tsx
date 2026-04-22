@@ -6,7 +6,7 @@ import type { PropsWithChildren } from 'react';
 
 export default function ContentWrapper({ children }: PropsWithChildren) {
   return (
-    <main>
+    <main id="center">
       {/* <Header /> */}
       {children}
       {/* <Footer /> */}
