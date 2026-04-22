@@ -1,27 +1,7 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import { onError } from 'react-error-boundary';
 
 import ErrorBoundaryWrapper from '../components/ErrorBoundaryWrapper';
-
-
-function BrokenComponent() {
-  const [shouldCrash, setShouldCrash] = useState(false);
-
-  if (shouldCrash) {
-    throw new Error('Компонент сломался!');
-  }
-
-  return (
-    <div>
-      <h3>Рабочий компонент</h3>
-      <button className="counter" onClick={() => setShouldCrash(true)}>
-        Сломать компонент
-      </button>
-    </div>
-  );
-}
-
+import BrokenComponent from '../components/BrokenComponent';
 
 function KitPage() {
   const navigate = useNavigate();
