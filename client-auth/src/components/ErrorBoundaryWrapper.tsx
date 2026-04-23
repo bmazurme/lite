@@ -2,7 +2,7 @@
 import type { PropsWithChildren } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
-import { Button } from '@gravity-ui/uikit';
+import { Button, Text } from '@gravity-ui/uikit';
 
 import ContentWrapper from './ContentWrapper';
 
@@ -43,11 +43,19 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   return (
     <ContentWrapper
       children={(
-        <section>
-          <h2 className={style.title}>APP-ERROR</h2>
-          <p className={style.message}>{errorMessage}</p>
+        <section className="section-block">
+          <Text variant="header-2">
+            APP-ERROR
+          </Text>
+          <div className={style.description}>
+            <Text variant="code-3">
+              {errorMessage}
+            </Text>
+          </div>
           <div className={style.block}>
-            Try to
+            <Text variant="subheader-2">
+              Try to
+            </Text>
             <Button
               view="outlined-utility"
               size="m"
@@ -55,7 +63,9 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
             >
               Reload app
             </Button>
-            or
+            <Text variant="subheader-2">
+              or
+            </Text>
             <Button
               view="outlined-action"
               size="m"
