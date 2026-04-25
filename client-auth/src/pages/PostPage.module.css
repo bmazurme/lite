@@ -1,0 +1,15 @@
+/* 320, 480, 768, 1024, 1200 */
+.container {
+  display: flex;
+  flex-direction: column;
+  background-color: cadetblue;
+  padding: 40px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  text-align: left;
+  background-color:cornflowerblue;
+}
