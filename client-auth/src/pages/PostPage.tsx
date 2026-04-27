@@ -1,10 +1,13 @@
-// import style from './PostPage.module.css';
+import { useParams } from 'react-router-dom';
 
 function PostPage() {
+  const { noteId } = useParams();
+
   return (
     <>
       <section className="post">
         <div className="post-title">
+          {noteId} = 
           Установка и настройка NGINX NTLM-модуля
         </div>
         <div className="post-excerpt">
