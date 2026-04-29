@@ -1,10 +1,12 @@
+import ContentWrapper from '../components/ContentWrapper';
 import Posts from '../components/Posts';
 
 function MainPage({ page }: { page?: number }) {
   return (
-    <>
-      <Posts page={page} />
-    </>
+    <ContentWrapper
+      children={(<Posts page={page} />)}
+      sidebar
+    />
   )
 }
 
