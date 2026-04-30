@@ -5,11 +5,14 @@ function Post() {
   const navigate = useNavigate();
 
   return (
-    <div className="post">
+    <article className="blog-post">
       <div className="post-title">
         Установка и настройка NGINX NTLM-модуля
       </div>
-      <div className="post-excerpt">
+      <p className="post-meta">
+        post-meta
+      </p>
+      <div className="post-content">
         NGINX NTLM-модуль — это дополнительный модуль для веб-сервера Nginx,
         который позволяет реализовать аутентификацию по протоколу NTLM.
         Это особенно полезно при работе с корпоративными сетями и Active Directory.
@@ -24,10 +27,7 @@ function Post() {
         </Button>
         
       </div>
-      <div className="post-meta">
-        post-meta
-      </div>
-    </div>
+    </article>
   )
 }
 
