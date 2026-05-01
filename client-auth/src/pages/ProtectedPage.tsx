@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Button } from '@gravity-ui/uikit';
 
 import { useGetUserInfoMutation } from '../store/api/users-api/endpoints';
@@ -18,6 +18,10 @@ function ProtectedPage() {
       console.error('Failed to fetch user info:', error);
     }
   }, [getUserInfo]);
+
+  useEffect(() => {
+    handleGetUserInfo();
+  }, []);
 
   return (
     <ContentWrapper
