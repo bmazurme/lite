@@ -43,7 +43,7 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   return (
     <ContentWrapper
       children={(
-        <section className="section-block">
+        <section className="error">
           <Text variant="header-2">
             APP-ERROR
           </Text>
@@ -86,7 +86,7 @@ export default function ErrorBoundaryWrapper({ children }: ErrorBoundaryWrapperP
       onReset={() => console.log('reset')}
       FallbackComponent={ErrorFallback}
     >
-      {children}
+      <>{children}</>
     </ErrorBoundary>
   );
 }
