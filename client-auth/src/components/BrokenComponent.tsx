@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button } from '@gravity-ui/uikit';
+import { Button, Text } from '@gravity-ui/uikit';
 
 function BrokenComponent() {
   const [shouldCrash, setShouldCrash] = useState(false);
@@ -10,7 +10,9 @@ function BrokenComponent() {
 
   return (
     <div>
-      <h3>Рабочий компонент</h3>
+      <Text variant="header-1">
+        Рабочий компонент
+      </Text>
       <Button
         view="outlined-danger"
         size="m"
