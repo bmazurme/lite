@@ -15,7 +15,9 @@ interface ContentWrapperProps extends PropsWithChildren {
 
 export default function ContentWrapper({ children, sidebar }: ContentWrapperProps) {
   const dispatch = useAppDispatch();
-  const { data, isLoading, error } = useCheckAuthQuery();
+  const { data, isLoading, error } = useCheckAuthQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
 
   useEffect(() => {
     if (isLoading) {
