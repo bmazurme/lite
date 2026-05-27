@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   UseGuards,
-  // HttpStatus,
   Req,
   UseInterceptors,
   ClassSerializerInterceptor,
@@ -15,11 +14,9 @@ import { Response } from 'express';
 import { OauthService } from './oauth.service';
 
 import { User } from '../users/entities/user.entity';
-// import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @Controller('api/v1/oauth')
 @UseInterceptors(ClassSerializerInterceptor)
-// @ApiTags('OAuth')
 export class OauthController {
   private readonly logger = new Logger(OauthController.name);
 
@@ -27,11 +24,6 @@ export class OauthController {
 
   @Get('/yandex')
   @UseGuards(AuthGuard('yandex'))
-  // @ApiOperation({ summary: 'Redirect to Yandex OAuth' })
-  // @ApiResponse({
-  //   status: HttpStatus.FOUND,
-  //   description: 'Redirecting to Yandex OAuth',
-  // })
   async yandexLogin(): Promise<void> {
     this.logger.log('Initiating Yandex OAuth flow');
     // return HttpStatus.OK;
@@ -39,21 +31,11 @@ export class OauthController {
 
   @Get('/yandex/redirect')
   @UseGuards(AuthGuard('yandex'))
-  // @ApiOperation({ summary: 'Yandex OAuth callback' })
-  // @ApiResponse({
-  //   status: HttpStatus.OK,
-  //   description: 'User authenticated successfully',
-  //   schema: {
-  //     example: {
-  //       accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-  //       refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-  //     },
-  //   },
-  // })
   async yandexLoginRedirect(
     @Req() req: Request & { user: { user?: User } },
     @Res({ passthrough: true }) response: Response,
   ): Promise<void> {
+    console.log(123);
     return this.oauthService.signinOrSignup(req.user.user, response);
   }
 }
