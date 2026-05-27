@@ -1,11 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-// import { JwtService } from '@nestjs/jwt';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 
 import { UsersService } from '../users/users.service';
-import { AuthService } from 'src/auth/auth.service';
+import { AuthService } from '../auth/auth.service';
 import { User } from '../users/entities/user.entity';
 
 @Injectable()
@@ -15,7 +14,6 @@ export class OauthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly authService: AuthService,
-    // private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     @Inject(CACHE_MANAGER)
     private cacheManager: Cache,
