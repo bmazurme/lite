@@ -1,24 +1,30 @@
 import { useParams } from 'react-router-dom';
 
 import ContentWrapper from '../components/ContentWrapper';
+import { useGetNoteByIdQuery } from '../store/api/notes-api/endpoints';
+import MarkdownPreview from '../components/MarkdownPreview/MarkdownPreview';
 
 function PostPage() {
   const { noteId } = useParams();
+  const { data } = useGetNoteByIdQuery(+noteId!);
+  console.log(data);
 
   return (
     <ContentWrapper children={(
       <section className="post">
         <div className="post-title">
-          {noteId} = 
-          Установка и настройка NGINX NTLM-модуля
+          {data?.title}
         </div>
         <div className="post-excerpt">
-          NGINX NTLM-модуль — это дополнительный модуль для веб-сервера Nginx,
-          который позволяет реализовать аутентификацию по протоколу NTLM.
-          Это особенно полезно при работе с корпоративными сетями и Active Directory.
+          <MarkdownPreview
+            getValue={() => data?.content || ''}
+            allowHTML={true}
+            breaks={true}
+            linkify={true}
+          />
         </div>
         <div className="post-meta">
-          post-meta
+          {data?.type?.name}
         </div>
       </section>)}
       sidebar
