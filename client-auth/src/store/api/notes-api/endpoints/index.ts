@@ -5,9 +5,10 @@ type Note = {
   title: string;
   preview: string;
   content: string;
-  type: {
-    id: number;
-  };
+  type: string;
+  // type: {
+  //   id: number;
+  // };
 };
 
 type NoteResponse = {
@@ -30,7 +31,7 @@ const notesApiEndpoints = notesApi
         query: (data: Note) => ({
           url: '/notes',
           method: 'POST',
-          body: data,
+          body: { ...data, type: { id: Number(data.type) } },
         }),
         invalidatesTags: ['Notes'],
       }),
