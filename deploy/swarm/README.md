@@ -221,6 +221,13 @@ docker stack deploy -c deploy/swarm/notes-stack.yml --with-registry-auth --prune
 
 ## Ограничения
 
+- **Ingress swarm слушает только IPv4.** Compose публиковал порты в обе
+  стороны (`0.0.0.0:3450` и `:::3450`), swarm — только на IPv4. Поэтому
+  reverse-proxy перед ВМ обязан ходить на `127.0.0.1`, а не на `localhost`:
+  `localhost` резолвится в `127.0.0.1` **и** `::1`, nginx считает это апстрим-
+  группой из двух серверов и половину запросов шлёт в `[::1]`, где никто не
+  слушает. Симптом — плавающие `502`/таймауты и `no live upstreams` в
+  `/var/log/nginx/error.log`. Подробнее — [CUTOVER.md](CUTOVER.md#грабли-ingress-swarm-слушает-только-ipv4).
 - Нода одна, поэтому swarm здесь даёт rolling update, healthcheck-гейт и
   откат, но не отказоустойчивость: ВМ падает — падает всё.
 - `docker swarm init` живёт в `/var/lib/docker` и переживает обновление
