@@ -1,0 +1,169 @@
+# Swarm stack for the notes app (lite) — deployed by .github/workflows/deploy.yml with
+#
+#   docker stack deploy -c deploy/swarm/notes-stack.yml --with-registry-auth notes
+#
+# `docker stack deploy` ignores `env_file` and `build`, so every value below is
+# interpolated on the CI runner from GitHub secrets: the VM never holds a
+# .env for this app, and the resolved spec is what ships to the swarm.
+#
+# Ports 3450/3455 are the ones the reverse proxy already points at — they must
+# be free on the host, i.e. notes-core/notes-client have to be gone from
+# ntlstl.place.api/yc/main/docker-compose.yaml first (see README.md).
+#
+# The `notes-core` service name is load-bearing: client/nginx/conf.d/default.conf
+# proxies to `http://notes-core:3000` by name, so the service must keep exactly
+# that name for the SPA's nginx to resolve it on the overlay network.
+version: '3.8'
+
+services:
+  notes-core:
+    image: ${CR_HOST:?CR_HOST is required}/${CR_REGISTRY:?CR_REGISTRY is required}/${CR_IMAGE_CORE:?CR_IMAGE_CORE is required}:${IMAGE_TAG:?IMAGE_TAG is required}
+    networks:
+      - notes
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # Postgres, MinIO and Loki stay where they are — the shared instances from
+      # the compose stack on this same VM, reached over their published ports
+      # via the host address (they are not on this overlay network).
+      POSTGRES_HOST: ${POSTGRES_HOST:?POSTGRES_HOST is required}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      # Ключ окружения, который читает core, — POSTGRES_DB_NOTES
+      # (см. core/src/config/type-orm.config.ts). Значение приходит из
+      # секрета/переменной POSTGRES_DB.
+      POSTGRES_DB_NOTES: ${POSTGRES_DB:?POSTGRES_DB is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      REFRESH_JWT_SECRET: ${REFRESH_JWT_SECRET:?REFRESH_JWT_SECRET is required}
+      NOTES_YANDEX_ID: ${NOTES_YANDEX_ID}
+      NOTES_YANDEX_SECRET: ${NOTES_YANDEX_SECRET}
+      NOTES_YANDEX_REDIRECT: ${NOTES_YANDEX_REDIRECT}
+      NOTES_TARGET_URL: ${NOTES_TARGET_URL:?NOTES_TARGET_URL is required}
+      # Empty/unset = any Yandex account may sign in (see oauth.service.ts).
+      EMAILS: ${EMAILS}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:?COOKIE_DOMAIN is required}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      # Absolute origin baked into RSS/sitemap links and og:image URLs.
+      SITE_URL: ${SITE_URL:?SITE_URL is required}
+      LOKI_HOST: ${LOKI_HOST:?LOKI_HOST is required}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:?MINIO_ENDPOINT is required}
+      MINIO_PORT: ${MINIO_PORT:-9000}
+      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is required}
+      MINIO_BUCKET_NOTES: ${MINIO_BUCKET_NOTES:-notes-images}
+    ports:
+      # Overridable so the stack can be rehearsed on spare ports while the
+      # compose stack still holds 3450/3455 — see CUTOVER.md, шаг 4.
+      - target: 3000
+        published: ${CORE_PORT:-3450}
+        protocol: tcp
+        mode: ingress
+    healthcheck:
+      # Public reference endpoint: no auth, but a real DB round-trip. Waiting on
+      # it also gates the rolling update on TypeORM's migrationsRun finishing.
+      test:
+        [
+          'CMD-SHELL',
+          'wget -q -O- http://127.0.0.1:3000/api/v1/types >/dev/null || exit 1',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      update_config:
+        # start-first + a health-gated monitor window: the new task has to pass
+        # its healthcheck before the old one is torn down, and a task that
+        # never gets there rolls the service back instead of taking it down.
+        order: start-first
+        parallelism: 1
+        delay: 10s
+        monitor: 90s
+        failure_action: rollback
+      rollback_config:
+        order: start-first
+        parallelism: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '0.60'
+          memory: 512M
+        reservations:
+          memory: 128M
+      labels:
+        app: notes
+        component: core
+
+  client:
+    # nginx + the built Vite SPA in one image (client/Dockerfile). VITE_* are
+    # baked in at build time — environment variables here would not affect them.
+    image: ${CR_HOST:?CR_HOST is required}/${CR_REGISTRY:?CR_REGISTRY is required}/${CR_IMAGE_CLIENT:?CR_IMAGE_CLIENT is required}:${IMAGE_TAG:?IMAGE_TAG is required}
+    networks:
+      - notes
+    ports:
+      - target: 80
+        published: ${CLIENT_PORT:-3455}
+        protocol: tcp
+        mode: ingress
+    healthcheck:
+      # The SPA entry point, served from local static files — proves nginx is up
+      # without dragging the backend into the frontend's health signal.
+      test: ['CMD-SHELL', 'wget -q -O- http://127.0.0.1/ >/dev/null || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      update_config:
+        order: start-first
+        parallelism: 1
+        delay: 5s
+        monitor: 30s
+        failure_action: rollback
+      rollback_config:
+        order: start-first
+        parallelism: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          memory: 32M
+      labels:
+        app: notes
+        component: client
+
+networks:
+  notes:
+    driver: overlay
+    # attachable so `docker run --network notes_notes …` works for debugging.
+    attachable: true

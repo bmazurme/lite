@@ -38,7 +38,9 @@ export class AddRelatedNotes1784643686367 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "note_related_notes" DROP CONSTRAINT "FK_note_related_notes_note"`,
     );
-    await queryRunner.query(`DROP INDEX "IDX_note_related_notes_relatedNoteId"`);
+    await queryRunner.query(
+      `DROP INDEX "IDX_note_related_notes_relatedNoteId"`,
+    );
     await queryRunner.query(`DROP INDEX "IDX_note_related_notes_noteId"`);
     await queryRunner.query(`DROP TABLE "note_related_notes"`);
   }

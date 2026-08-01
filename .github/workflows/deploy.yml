@@ -9,6 +9,12 @@ on:
       - created
   workflow_dispatch:
 
+# One deploy at a time — two overlapping `docker stack deploy` runs against the
+# same swarm would fight over the rolling update.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   push-core:
     name: Build & push core
@@ -66,3 +72,165 @@ jobs:
 
           docker push "$CR_HOST/$CR_REGISTRY/$CR_IMAGE:$IMAGE_TAG"
           docker push "$CR_HOST/$CR_REGISTRY/$CR_IMAGE:latest"
+
+  deploy:
+    name: Deploy to Docker Swarm
+    needs: [push-core, push-client]
+    if: github.ref == 'refs/heads/main' || github.event_name == 'release'
+    runs-on: ubuntu-latest
+
+    env:
+      STACK_NAME: notes
+      # Deploy the exact images this run built, not :latest — the swarm records
+      # the tag in the service spec, which is what makes rollbacks meaningful.
+      IMAGE_TAG: ${{ github.sha }}
+      DOCKER_HOST: ssh://${{ secrets.SWARM_USER }}@${{ secrets.SWARM_HOST }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The runner's registry credentials are forwarded to the swarm nodes by
+      # --with-registry-auth below, so the VM needs no docker login of its own.
+      - name: Yandex Cloud CR Login
+        uses: yc-actions/yc-cr-login@v2
+        with:
+          yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
+
+      - name: Set up SSH access to the swarm manager
+        env:
+          SWARM_HOST: ${{ secrets.SWARM_HOST }}
+          SWARM_SSH_KEY: ${{ secrets.SWARM_SSH_KEY }}
+          SWARM_SSH_KNOWN_HOSTS: ${{ secrets.SWARM_SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SWARM_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+          if [ -n "$SWARM_SSH_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$SWARM_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            # Trust-on-first-use fallback. Set SWARM_SSH_KNOWN_HOSTS to pin the
+            # host key instead of re-learning it on every run.
+            echo "::warning::SWARM_SSH_KNOWN_HOSTS is not set — falling back to ssh-keyscan"
+            ssh-keyscan -H "$SWARM_HOST" > ~/.ssh/known_hosts 2>/dev/null
+          fi
+          chmod 600 ~/.ssh/known_hosts
+
+          cat > ~/.ssh/config <<EOF
+          Host $SWARM_HOST
+            IdentityFile ~/.ssh/id_ed25519
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            ServerAliveInterval 20
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Check the swarm is reachable
+        run: |
+          docker version --format 'daemon {{.Server.Version}} on {{.Server.Os}}/{{.Server.Arch}}'
+          if [ "$(docker info --format '{{.Swarm.ControlAvailable}}')" != 'true' ]; then
+            echo "::error::${{ secrets.SWARM_HOST }} is not a swarm manager — run deploy/swarm/bootstrap.sh on it first"
+            exit 1
+          fi
+
+      - name: Deploy the stack
+        env:
+          CR_HOST: ${{ secrets.CR_HOST }}
+          CR_REGISTRY: ${{ secrets.CR_REGISTRY }}
+          CR_IMAGE_CORE: ${{ secrets.CR_IMAGE_CORE }}
+          CR_IMAGE_CLIENT: ${{ secrets.CR_IMAGE_CLIENT }}
+          POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
+          POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          # Имя БД лежит в POSTGRES_DB. Оно не секретное, поэтому может быть
+          # заведено и как Actions variable — берём то, что найдётся.
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB || vars.POSTGRES_DB }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          REFRESH_JWT_SECRET: ${{ secrets.REFRESH_JWT_SECRET }}
+          NOTES_YANDEX_ID: ${{ secrets.NOTES_YANDEX_ID }}
+          NOTES_YANDEX_SECRET: ${{ secrets.NOTES_YANDEX_SECRET }}
+          NOTES_YANDEX_REDIRECT: ${{ secrets.NOTES_YANDEX_REDIRECT }}
+          NOTES_TARGET_URL: ${{ secrets.NOTES_TARGET_URL }}
+          EMAILS: ${{ secrets.EMAILS }}
+          COOKIE_DOMAIN: ${{ secrets.COOKIE_DOMAIN }}
+          CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
+          SITE_URL: ${{ secrets.VITE_SITE_URL }}
+          LOKI_HOST: ${{ secrets.LOKI_HOST }}
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+          MINIO_PORT: ${{ secrets.MINIO_PORT }}
+          MINIO_USE_SSL: ${{ secrets.MINIO_USE_SSL }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+          MINIO_BUCKET_NOTES: ${{ secrets.MINIO_BUCKET_NOTES }}
+        run: |
+          docker stack deploy \
+            --compose-file deploy/swarm/notes-stack.yml \
+            --with-registry-auth \
+            --prune \
+            "$STACK_NAME"
+
+      - name: Wait for the rolling update to converge
+        run: |
+          services="${STACK_NAME}_notes-core ${STACK_NAME}_client"
+          deadline=$(( $(date +%s) + 420 ))
+
+          for svc in $services; do
+            while :; do
+              state=$(docker service inspect --format \
+                '{{if .UpdateStatus}}{{.UpdateStatus.State}}{{else}}completed{{end}}' "$svc")
+              replicas=$(docker service ls --filter "name=$svc" --format '{{.Replicas}}')
+
+              case "$state" in
+                completed|'')
+                  # Converged only once the running count matches the desired one.
+                  if [ -n "$replicas" ] && [ "${replicas%%/*}" = "${replicas##*/}" ]; then
+                    echo "$svc: $replicas ($state)"
+                    break
+                  fi
+                  ;;
+                rollback_completed|rollback_started|paused)
+                  echo "::error::$svc failed to update and swarm rolled it back (state: $state)"
+                  docker service ps --no-trunc "$svc"
+                  exit 1
+                  ;;
+              esac
+
+              if [ "$(date +%s)" -ge "$deadline" ]; then
+                echo "::error::$svc did not converge in time (state: $state, replicas: $replicas)"
+                docker service ps --no-trunc "$svc"
+                exit 1
+              fi
+              sleep 5
+            done
+          done
+
+      - name: Smoke test
+        env:
+          SWARM_HOST: ${{ secrets.SWARM_HOST }}
+          SWARM_USER: ${{ secrets.SWARM_USER }}
+        run: |
+          # Hit the published ports from the VM itself: they are what the
+          # reverse proxy in front of this host talks to. /rss.xml goes through
+          # the client's nginx into core, so it covers the proxy wiring too.
+          ssh "$SWARM_USER@$SWARM_HOST" '
+            set -e
+            for i in $(seq 1 20); do
+              if curl -sf http://127.0.0.1:3450/api/v1/types > /dev/null \
+                 && curl -sf http://127.0.0.1:3455/ > /dev/null \
+                 && curl -sf http://127.0.0.1:3455/rss.xml > /dev/null; then
+                echo "smoke test passed"
+                exit 0
+              fi
+              sleep 3
+            done
+            echo "smoke test failed" >&2
+            exit 1
+          '
+
+      - name: Service state on failure
+        if: failure()
+        run: |
+          docker stack ps --no-trunc "$STACK_NAME" || true
+          docker service logs --tail 100 "${STACK_NAME}_notes-core" || true
+          docker service logs --tail 100 "${STACK_NAME}_client" || true

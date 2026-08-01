@@ -37,7 +37,9 @@ export class UploadsController {
   async uploadImage(
     @UploadedFile(
       new ParseFilePipeBuilder()
-        .addFileTypeValidator({ fileType: /^image\/(png|jpe?g|gif|webp|svg\+xml|avif)$/ })
+        .addFileTypeValidator({
+          fileType: /^image\/(png|jpe?g|gif|webp|svg\+xml|avif)$/,
+        })
         .addMaxSizeValidator({ maxSize: MAX_IMAGE_SIZE })
         .build({ fileIsRequired: true }),
     )
@@ -60,7 +62,8 @@ export class UploadsController {
     @Param('key') key: string,
     @Res() res: Response,
   ): Promise<void> {
-    const { stream, contentType, size } = await this.uploadsService.getObject(key);
+    const { stream, contentType, size } =
+      await this.uploadsService.getObject(key);
 
     res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Length', size);

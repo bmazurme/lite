@@ -143,7 +143,9 @@ CI/CD на GitHub Actions:
 
 - **build** — собирает `core` и `client`, проверяет, что Docker-образы собираются
 - **test** — запускает unit и e2e тесты `core` и `client`
-- **deploy** — при пуше в `main` собирает и пушит образы `core` и `client` в Yandex Cloud Container Registry
+- **deploy** — при пуше в `main` собирает и пушит образы `core` и `client` в Yandex Cloud Container Registry, затем катит их в Docker Swarm
+
+Прод крутится в single-node Docker Swarm на той же ВМ, что и остальной монолит: rolling update `start-first` с healthcheck и авто-откатом, конкретный тег `:<sha>` вместо `:latest`. Стек, скрипт разовой подготовки ВМ и порядок переключения — в [`deploy/swarm/`](deploy/swarm/README.md).
 
 В продакшене перед `client` и `core` стоит Nginx (конфиг — `client/nginx/nginx.conf`), который отдаёт статику SPA, проксирует `/api` на `core` и терминирует TLS.
 
