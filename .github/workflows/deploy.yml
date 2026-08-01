@@ -8,6 +8,16 @@ on:
     types:
       - created
   workflow_dispatch:
+    inputs:
+      keep_images:
+        description: 'How many images of each repo to keep on the swarm node (for rollback)'
+        required: false
+        default: '3'
+      prune_registry:
+        description: 'Also delete old tags from Yandex Container Registry'
+        type: boolean
+        required: false
+        default: false
 
 # One deploy at a time — two overlapping `docker stack deploy` runs against the
 # same swarm would fight over the rolling update.
@@ -227,6 +237,117 @@ jobs:
             echo "smoke test failed" >&2
             exit 1
           '
+
+      # Runs only after the smoke test passed, so a broken deploy still has its
+      # old images sitting on the node to roll back to.
+      - name: Clean up old images on the swarm node
+        env:
+          CR_HOST: ${{ secrets.CR_HOST }}
+          CR_REGISTRY: ${{ secrets.CR_REGISTRY }}
+          CR_IMAGE_CORE: ${{ secrets.CR_IMAGE_CORE }}
+          CR_IMAGE_CLIENT: ${{ secrets.CR_IMAGE_CLIENT }}
+          KEEP_IMAGES: ${{ inputs.keep_images || '3' }}
+        run: |
+          # Scoped to this stack's own repositories on purpose. The node also
+          # runs the ntlstl and rain stacks, and a blanket `docker image prune`
+          # would strip their rollback targets too — swarm pins images by
+          # digest, so their previous images sit there untagged and look
+          # dangling.
+          prune_repo() {
+            repo="$1"
+            svc="$2"
+
+            all=$(docker images "$repo" --no-trunc --format '{{.ID}}' | sort -u)
+            if [ -z "$all" ]; then
+              echo "$repo: no images on the node"
+              return 0
+            fi
+
+            # Whatever the live task actually runs, even if a rollback made an
+            # older image the current one. Resolved through the container, not
+            # through `docker ps --format {{.Image}}`: swarm pulls by digest, so
+            # the tag that command prints often no longer resolves on the node.
+            in_use=$(docker ps -q --filter "label=com.docker.swarm.service.name=$svc" \
+              | xargs -r docker inspect --format '{{.Image}}' 2>/dev/null || true)
+
+            # …plus the N newest, so `docker service rollback` does not have to
+            # re-pull from the registry.
+            recent=$(docker images "$repo" --no-trunc --format '{{.CreatedAt}}|{{.ID}}' \
+              | sort -r | head -n "$KEEP_IMAGES" | cut -d'|' -f2)
+
+            keep=$(printf '%s\n%s\n' "$in_use" "$recent" | grep . | sort -u) || true
+            stale=$(comm -23 <(printf '%s\n' "$all") <(printf '%s\n' "$keep"))
+
+            if [ -z "$stale" ]; then
+              echo "$repo: nothing to remove (keeping $(printf '%s\n' "$keep" | wc -l) images)"
+            else
+              echo "$repo: removing $(printf '%s\n' "$stale" | wc -l) stale image(s):"
+              # Per-image so one still-referenced image does not abort the rest.
+              printf '%s\n' "$stale" | xargs -r -n1 docker image rm || true
+            fi
+          }
+
+          prune_repo "$CR_HOST/$CR_REGISTRY/$CR_IMAGE_CORE"   "${STACK_NAME}_notes-core"
+          prune_repo "$CR_HOST/$CR_REGISTRY/$CR_IMAGE_CLIENT" "${STACK_NAME}_client"
+
+          docker system df
+
+      # Opt-in: the registry is the copy that keeps costing money, but deleting
+      # a tag is irreversible and takes away a rollback target the node may no
+      # longer hold either. A Container Registry lifecycle policy does the same
+      # job server-side and is the better long-term answer — see
+      # deploy/swarm/README.md.
+      - name: Clean up old tags in Container Registry
+        if: ${{ inputs.prune_registry }}
+        continue-on-error: true
+        env:
+          CR_REGISTRY: ${{ secrets.CR_REGISTRY }}
+          CR_IMAGE_CORE: ${{ secrets.CR_IMAGE_CORE }}
+          CR_IMAGE_CLIENT: ${{ secrets.CR_IMAGE_CLIENT }}
+          KEEP_IMAGES: ${{ inputs.keep_images || '3' }}
+          YC_SA_JSON: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
+        run: |
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh \
+            | bash -s -- -i "$HOME/yandex-cloud" -n
+          export PATH="$HOME/yandex-cloud/bin:$PATH"
+
+          printf '%s' "$YC_SA_JSON" > /tmp/sa-key.json
+          yc config set service-account-key /tmp/sa-key.json
+
+          prune_registry_repo() {
+            # `yc` wants <registry-id>/<image> here — no `cr.yandex` host, it
+            # parses the first path segment as the registry id and 404s on it.
+            repo="$1"
+            list=/tmp/stale-$(printf '%s' "$repo" | tr '/' '-').txt
+
+            # Newest first; keep the N newest and anything tagged `latest` or
+            # with the tag this run just deployed.
+            yc container image list --repository-name "$repo" --format json \
+              | jq -r --arg keep_tag "$IMAGE_TAG" --argjson keep "$KEEP_IMAGES" '
+                  sort_by(.created_at) | reverse
+                  | to_entries
+                  | map(select(
+                      .key >= $keep
+                      and ((.value.tags // []) | index("latest") | not)
+                      and ((.value.tags // []) | index($keep_tag) | not)
+                    ))
+                  | .[].value.id' \
+              > "$list"
+
+            count=$(wc -l < "$list")
+            if [ "$count" -eq 0 ]; then
+              echo "nothing to delete in $repo"
+              return 0
+            fi
+
+            echo "deleting $count image(s) from $repo"
+            while read -r id; do
+              [ -n "$id" ] && yc container image delete "$id"
+            done < "$list"
+          }
+
+          prune_registry_repo "$CR_REGISTRY/$CR_IMAGE_CORE"
+          prune_registry_repo "$CR_REGISTRY/$CR_IMAGE_CLIENT"
 
       - name: Service state on failure
         if: failure()
