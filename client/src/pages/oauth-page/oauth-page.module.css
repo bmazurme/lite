@@ -1,4 +1,5 @@
 .page {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -7,6 +8,22 @@
   padding: 48px 16px;
   flex: 1;
   grid-column: 1 / -1;
+  isolation: isolate;
+}
+
+/* Мягкое радиальное свечение за карточкой — задаёт «якорь» на тёмном фоне,
+   как на референсе. На светлой теме почти не видно, поэтому не мешает. */
+.page::before {
+  content: '';
+  position: absolute;
+  top: 8%;
+  left: 50%;
+  width: min(720px, 140vw);
+  height: 480px;
+  transform: translateX(-50%);
+  background: radial-gradient(closest-side, color-mix(in srgb, #FFBE5C 16%, transparent), transparent 70%);
+  pointer-events: none;
+  z-index: -1;
 }
 
 .card {
@@ -16,17 +33,32 @@
   gap: 20px;
   width: 100%;
   max-width: 400px;
-  padding: 32px 28px;
+  padding: 40px 32px;
   border: 1px solid var(--g-color-line-generic);
-  border-radius: var(--g-border-radius-xl);
+  border-radius: 24px;
   background: var(--g-color-base-float);
-  box-shadow: 0 2px 12px var(--g-color-sfx-shadow-light);
+  box-shadow: 0 2px 24px var(--g-color-sfx-shadow-light);
+  animation: card-in 0.32s ease both;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .brand {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
+  text-align: center;
 }
 
 /* Тот же знак, что в шапке — чтобы вход не выглядел чужой страницей. */
@@ -34,21 +66,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
   background: #FFBE5C;
   color: #221D22;
   font-weight: 700;
-  font-size: 20px;
+  font-size: 28px;
   line-height: 1;
   flex-shrink: 0;
+  box-shadow: 0 6px 20px color-mix(in srgb, #FFBE5C 35%, transparent);
 }
 
 .brandText {
   display: flex;
   flex-direction: column;
-  line-height: 1.25;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
 }
 
 .centered {
@@ -91,18 +126,25 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  width: 100%;
 }
 
 .yandexButton {
-  display: inline-block;
-  line-height: 0;
-  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px;
+  border-radius: 14px;
   outline: none;
-  transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+  background: var(--g-color-base-generic);
+  border: 1px solid var(--g-color-line-generic);
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
 .yandexButton:hover {
-  opacity: 0.9;
+  background: var(--g-color-base-generic-hover);
+  box-shadow: 0 4px 16px var(--g-color-sfx-shadow-light);
 }
 
 .yandexButton:active {
@@ -136,26 +178,28 @@
 
 .guarantees {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
   margin: 0;
-  padding-top: 20px;
-  border-top: 1px solid var(--g-color-line-generic);
+  padding-top: 4px;
   list-style: none;
 }
 
 .guarantee {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  line-height: 1.4;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--g-color-base-generic);
 }
 
 .guaranteeIcon {
   color: var(--g-color-text-secondary);
   flex-shrink: 0;
-  margin-top: 2px;
 }
 
 .back {
@@ -168,12 +212,32 @@
   }
 
   .card {
-    padding: 24px 20px;
+    padding: 28px 20px;
     gap: 18px;
+  }
+
+  .brandMark {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    font-size: 24px;
+  }
+
+  .guarantees {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .guarantee {
+    justify-content: center;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
+
   .yandexButton {
     transition: none;
   }

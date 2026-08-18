@@ -24,9 +24,9 @@ const OAUTH_ERRORS: Record<string, string> = {
 };
 
 const GUARANTEES = [
-  { icon: ShieldCheck, text: 'Пароль вводится на стороне Яндекса — мы его не видим' },
-  { icon: Envelope, text: 'Получаем только email — больше ничего из профиля' },
-  { icon: Key, text: 'Доступ к редактированию — только у зарегистрированных авторов' },
+  { icon: ShieldCheck, text: 'Пароль знает только Яндекс' },
+  { icon: Envelope, text: 'Забираем только email' },
+  { icon: Key, text: 'Править могут только авторы' },
 ];
 
 const OauthPage = () => {
@@ -87,13 +87,13 @@ const OauthPage = () => {
                 variant="subheader-3"
                 as="h1"
               >
-                Вход в NTLSTL
+                NTLSTL
               </Text>
               <Text
-                variant="body-1"
+                variant="body-2"
                 color="secondary"
               >
-                Developer notes
+                Войдите через Яндекс ID, чтобы создавать и редактировать заметки
               </Text>
             </div>
           </div>
@@ -163,14 +163,6 @@ const OauthPage = () => {
                   <Text variant="body-1">{errorText}</Text>
                 </div>
               )}
-
-              <Text
-                variant="body-2"
-                color="secondary"
-                className={style.centered}
-              >
-                Войдите через Яндекс ID, чтобы создавать и редактировать заметки.
-              </Text>
 
               <div className={style.authBlock}>
                 <a
