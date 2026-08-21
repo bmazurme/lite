@@ -138,9 +138,9 @@
   padding: 14px;
   border-radius: 14px;
   outline: none;
-  background: #897BF7;
+  background: #FFBE5C;
   border: none;
-  color: #1B1B23;
+  color: #221D22;
   font-size: 15px;
   font-weight: 500;
   line-height: 1;
@@ -149,8 +149,8 @@
 }
 
 .yandexButton:hover {
-  background: #7A6BF5;
-  box-shadow: 0 4px 16px color-mix(in srgb, #897BF7 35%, transparent);
+  background: #FFC978;
+  box-shadow: 0 4px 16px color-mix(in srgb, #FFBE5C 35%, transparent);
 }
 
 .yandexButton:active {
