@@ -10,7 +10,7 @@
 # be free on the host, i.e. notes-core/notes-client have to be gone from
 # ntlstl.place.api/yc/main/docker-compose.yaml first (see README.md).
 #
-# The `notes-core` service name is load-bearing: client/nginx/conf.d/default.conf
+# The `notes-core` service name is load-bearing: apps/client/nginx/conf.d/default.conf
 # proxies to `http://notes-core:3000` by name, so the service must keep exactly
 # that name for the SPA's nginx to resolve it on the overlay network.
 version: '3.8'
@@ -31,7 +31,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       # Ключ окружения, который читает core, — POSTGRES_DB_NOTES
-      # (см. core/src/config/type-orm.config.ts). Значение приходит из
+      # (см. apps/core/src/config/type-orm.config.ts). Значение приходит из
       # секрета/переменной POSTGRES_DB.
       POSTGRES_DB_NOTES: ${POSTGRES_DB:?POSTGRES_DB is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
@@ -110,7 +110,7 @@ services:
         component: core
 
   client:
-    # nginx + the built Vite SPA in one image (client/Dockerfile). VITE_* are
+    # nginx + the built Vite SPA in one image (apps/client/Dockerfile). VITE_* are
     # baked in at build time — environment variables here would not affect them.
     image: ${CR_HOST:?CR_HOST is required}/${CR_REGISTRY:?CR_REGISTRY is required}/${CR_IMAGE_CLIENT:?CR_IMAGE_CLIENT is required}:${IMAGE_TAG:?IMAGE_TAG is required}
     networks:

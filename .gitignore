@@ -38,3 +38,7 @@ lerna-debug.log*
 client-next
 tmp
 
+# Local prod-data backups (see deploy/BACKUP.md) — never commit dumps
+*.dump
+minio-dump/
+

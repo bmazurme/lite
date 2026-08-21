@@ -28,7 +28,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: core
+        working-directory: apps/core
 
     steps:
       - uses: actions/checkout@v4
@@ -37,7 +37,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: core/package-lock.json
+          cache-dependency-path: apps/core/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -67,7 +67,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: client
+        working-directory: apps/client
 
     steps:
       - uses: actions/checkout@v4
@@ -76,7 +76,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: client/package-lock.json
+          cache-dependency-path: apps/client/package-lock.json
 
       - name: Install dependencies
         run: npm ci

@@ -31,9 +31,11 @@
 
 ```
 lite/
-├── core/           # NestJS API (порт 3000)
-├── client/         # React SPA (порт 80)
-├── monitoring/     # Конфиги Loki, Prometheus, Grafana
+├── apps/
+│   ├── core/               # NestJS API (порт 3000)
+│   └── client/             # React SPA (порт 80)
+├── deploy/
+│   └── monitoring/         # Конфиги Loki, Prometheus, Grafana
 └── docker-compose.yml
 ```
 
@@ -59,10 +61,10 @@ lite/
 Скопируйте и заполните:
 
 ```bash
-cp core/.env.example core/.env
+cp apps/core/.env.example apps/core/.env
 ```
 
-Минимально необходимые переменные в `core/.env`:
+Минимально необходимые переменные в `apps/core/.env`:
 
 ```env
 JWT_SECRET=
@@ -78,7 +80,7 @@ EMAILS=user@example.com # Белый список email через запяту�
 
 Переменные для загрузки изображений (MinIO). При запуске через docker-compose уже
 проставлены в `docker-compose.yml`; для локального запуска `core` без Docker задайте
-их в `core/.env`:
+их в `apps/core/.env`:
 
 ```env
 MINIO_ENDPOINT=localhost   # хост MinIO (в docker-compose — minio)
@@ -134,7 +136,7 @@ docker compose up -d
 - **minio** — S3-совместимый object store для изображений; API на `9000`, консоль на `9001`, данные в volume `minio_data`
 - **loki** — хранилище логов (порт не проброшен наружу)
 - **prometheus** — сбор метрик с `core:3000/metrics`
-- **grafana** — дашборды для Prometheus и Loki, provisioning из `monitoring/grafana/`
+- **grafana** — дашборды для Prometheus и Loki, provisioning из `deploy/monitoring/grafana/`
 - **pgadmin** — веб-интерфейс для PostgreSQL
 
 ## Деплой
@@ -147,7 +149,7 @@ CI/CD на GitHub Actions:
 
 Прод крутится в single-node Docker Swarm на той же ВМ, что и остальной монолит: rolling update `start-first` с healthcheck и авто-откатом, конкретный тег `:<sha>` вместо `:latest`. Стек, скрипт разовой подготовки ВМ и порядок переключения — в [`deploy/swarm/`](deploy/swarm/README.md).
 
-В продакшене перед `client` и `core` стоит Nginx (конфиг — `client/nginx/nginx.conf`), который отдаёт статику SPA, проксирует `/api` на `core` и терминирует TLS.
+В продакшене перед `client` и `core` стоит Nginx (конфиг — `apps/client/nginx/nginx.conf`), который отдаёт статику SPA, проксирует `/api` на `core` и терминирует TLS.
 
 ## Локальная разработка
 
@@ -163,12 +165,12 @@ docker compose up -d postgres minio loki prometheus grafana pgadmin
 
 ```bash
 # client: unit-тесты
-cd client && npm run test
+cd apps/client && npm run test
 
 # client: e2e (Cypress)
-cd client && npm run cy:open
+cd apps/client && npm run cy:open
 
 # core: unit и e2e
-cd core && npm run test
-cd core && npm run test:e2e
+cd apps/core && npm run test
+cd apps/core && npm run test:e2e
 ```

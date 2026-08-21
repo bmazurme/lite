@@ -266,11 +266,11 @@ Postgres, MinIO и Loki остаются в compose-стеке и в swarm-ст�
 Форматы у MinIO и Loki разные — это не опечатка, а разные клиенты:
 
 - MinIO SDK принимает хост, порт и флаг TLS **раздельно**
-  (`endPoint` / `port` / `useSSL` в `core/src/uploads/uploads.service.ts`).
+  (`endPoint` / `port` / `useSSL` в `apps/core/src/uploads/uploads.service.ts`).
   Если положить в `MINIO_ENDPOINT` строку `http://10.128.0.11:9000`, клиент
   упадёт на разборе адреса — загрузка и отдача картинок перестанут работать.
 - `winston-loki` принимает **URL целиком** (`host` в
-  `core/src/config/logger.config.ts`). Без схемы транспорт до Loki не соберётся:
+  `apps/core/src/config/logger.config.ts`). Без схемы транспорт до Loki не соберётся:
   приложение при этом работает, просто логи не уезжают.
 
 Проверить, что порты действительно опубликованы на хост:

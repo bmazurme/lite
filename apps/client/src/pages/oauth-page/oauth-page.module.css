@@ -133,18 +133,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   width: 100%;
-  padding: 12px;
+  padding: 14px;
   border-radius: 14px;
   outline: none;
-  background: var(--g-color-base-generic);
-  border: 1px solid var(--g-color-line-generic);
-  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  background: #897BF7;
+  border: none;
+  color: #1B1B23;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .yandexButton:hover {
-  background: var(--g-color-base-generic-hover);
-  box-shadow: 0 4px 16px var(--g-color-sfx-shadow-light);
+  background: #7A6BF5;
+  box-shadow: 0 4px 16px color-mix(in srgb, #897BF7 35%, transparent);
 }
 
 .yandexButton:active {
@@ -160,11 +166,8 @@
   pointer-events: none;
 }
 
-.yandexLogo {
-  display: block;
-  height: 44px;
-  width: 135px;
-  aspect-ratio: 135 / 44;
+.yandexIcon {
+  flex-shrink: 0;
 }
 
 /* Всегда занимает место: подсказка появляется без сдвига карточки. */
@@ -176,30 +179,10 @@
   min-height: 18px;
 }
 
-.guarantees {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+.accessHint {
   width: 100%;
-  margin: 0;
   padding-top: 4px;
-  list-style: none;
-}
-
-.guarantee {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: var(--g-color-base-generic);
-}
-
-.guaranteeIcon {
-  color: var(--g-color-text-secondary);
-  flex-shrink: 0;
+  text-align: center;
 }
 
 .back {
@@ -221,15 +204,6 @@
     height: 56px;
     border-radius: 14px;
     font-size: 24px;
-  }
-
-  .guarantees {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .guarantee {
-    justify-content: center;
   }
 }
 

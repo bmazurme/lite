@@ -1,4 +1,4 @@
-import { ArrowLeft, CircleCheckFill, Envelope, Key, ShieldCheck } from '@gravity-ui/icons';
+import { ArrowLeft, CircleCheckFill, LogoYandex } from '@gravity-ui/icons';
 import { Button, Icon, Loader, Text } from '@gravity-ui/uikit';
 import { useCallback, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -6,7 +6,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import ContentWrapper from '../../components/content-wrapper';
 import PageMeta from '../../components/page-meta';
 import { useIsAuthenticated } from '../../hooks/use-is-authenticated';
-import { useTheme } from '../../hooks/use-theme';
 import { VITE_TOKEN } from '../../utils/constants';
 
 import style from './oauth-page.module.css';
@@ -23,16 +22,9 @@ const OAUTH_ERRORS: Record<string, string> = {
   temporarily_unavailable: 'Яндекс временно недоступен. Попробуйте через несколько минут.',
 };
 
-const GUARANTEES = [
-  { icon: ShieldCheck, text: 'Пароль знает только Яндекс' },
-  { icon: Envelope, text: 'Забираем только email' },
-  { icon: Key, text: 'Править могут только авторы' },
-];
-
 const OauthPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isDark } = useTheme();
   const { isAuthenticated, isChecking } = useIsAuthenticated();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
@@ -172,13 +164,13 @@ const OauthPage = () => {
                   aria-disabled={isRedirecting || undefined}
                   onClick={handleAuthorize}
                 >
-                  <img
-                    src={isDark ? '/ya-oauth.svg' : '/ya-oauth-white.svg'}
-                    alt="Войти с Яндекс ID"
-                    width="135"
-                    height="44"
-                    className={style.yandexLogo}
+                  <Icon
+                    data={LogoYandex}
+                    size={20}
+                    className={style.yandexIcon}
+                    aria-hidden="true"
                   />
+                  Войти через Яндекс
                 </a>
 
                 <div
@@ -200,27 +192,13 @@ const OauthPage = () => {
                 </div>
               </div>
 
-              <ul className={style.guarantees}>
-                {GUARANTEES.map(({ icon, text }) => (
-                  <li
-                    key={text}
-                    className={style.guarantee}
-                  >
-                    <Icon
-                      data={icon}
-                      size={16}
-                      className={style.guaranteeIcon}
-                      aria-hidden="true"
-                    />
-                    <Text
-                      variant="caption-2"
-                      color="secondary"
-                    >
-                      {text}
-                    </Text>
-                  </li>
-                ))}
-              </ul>
+              <Text
+                variant="caption-2"
+                color="secondary"
+                className={style.accessHint}
+              >
+                Доступ по приглашению — вход открыт только для заранее добавленных адресов.
+              </Text>
             </>
           )}
         </div>

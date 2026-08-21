@@ -15,9 +15,9 @@ services:
 
   notes-core:
     build:
-      context: ./core
+      context: ./apps/core
     env_file:
-      - ./core/.env
+      - ./apps/core/.env
     environment:
       NODE_ENV: production
       POSTGRES_HOST: postgres
@@ -48,7 +48,7 @@ services:
 
   client:
     build:
-      context: ./client
+      context: ./apps/client
       args:
         VITE_API_DOMAIN: ${VITE_API_DOMAIN:-http://localhost/api/v1}
         VITE_TOKEN: ${VITE_TOKEN:-}
@@ -97,7 +97,7 @@ services:
     image: grafana/loki:3.4.2
     command: -config.file=/etc/loki/loki.yml
     volumes:
-      - ./monitoring/loki.yml:/etc/loki/loki.yml:ro
+      - ./deploy/monitoring/loki.yml:/etc/loki/loki.yml:ro
       - loki_data:/loki
     restart: unless-stopped
 
@@ -107,7 +107,7 @@ services:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.retention.time=15d
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     ports:
       - "9090:9090"
@@ -122,8 +122,8 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: false
     volumes:
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
+      - ./deploy/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
     ports:
       - "3001:3000"
@@ -142,10 +142,10 @@ services:
     environment:
       CYPRESS_BASE_URL: http://client
     volumes:
-      - ./client/cypress:/e2e/cypress
-      - ./client/cypress.config.ts:/e2e/cypress.config.ts
-      - ./client/cypress/tsconfig.json:/e2e/tsconfig.json
-      - ./client/cypress/screenshots:/e2e/cypress/screenshots
+      - ./apps/client/cypress:/e2e/cypress
+      - ./apps/client/cypress.config.ts:/e2e/cypress.config.ts
+      - ./apps/client/cypress/tsconfig.json:/e2e/tsconfig.json
+      - ./apps/client/cypress/screenshots:/e2e/cypress/screenshots
     working_dir: /e2e
     profiles:
       - e2e

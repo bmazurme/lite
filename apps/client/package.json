@@ -19,7 +19,7 @@
     "cy:open": "cypress open",
     "cy:run": "cypress run",
     "cy:docker": "docker compose --profile e2e up --build --abort-on-container-exit --exit-code-from cypress",
-    "cy:docker:full": "docker compose -f ../docker-compose.yml --profile e2e up --build --abort-on-container-exit --exit-code-from cypress"
+    "cy:docker:full": "docker compose -f ../../docker-compose.yml --profile e2e up --build --abort-on-container-exit --exit-code-from cypress"
   },
   "dependencies": {
     "@diplodoc/mermaid-extension": "^2.1.0",

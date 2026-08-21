@@ -27,13 +27,13 @@ reverse-proxy перед ВМ трогать не нужно.
   публикует 3450 → 3000, healthcheck на `GET /api/v1/types` (публичный
   эндпоинт, но с реальным походом в БД).
 - `notes_client` — nginx со собранной Vite-SPA внутри (`${CR_IMAGE_CLIENT}:<sha>`,
-  см. `client/Dockerfile`), публикует 3455 → 80. Он же проксирует `/api`,
+  см. `apps/client/Dockerfile`), публикует 3455 → 80. Он же проксирует `/api`,
   `/rss.xml`, `/sitemap.xml` и пререндер соц-ботов в `notes-core`. Healthcheck
   на `/` — отдаётся из локальной статики и не зависит от бэкенда.
 - overlay-сеть `notes_notes` (`attachable`, чтобы можно было отладочно
   подключаться `docker run --network notes_notes …`).
 
-**Имя `notes-core` важно.** `client/nginx/conf.d/default.conf` проксирует на
+**Имя `notes-core` важно.** `apps/client/nginx/conf.d/default.conf` проксирует на
 `http://notes-core:3000` по имени, поэтому сервис в стеке называется ровно так —
 иначе nginx не разрезолвит апстрим. Swarm выдаёт каждому сервису стабильный VIP,
 который не меняется при пересоздании задач, поэтому кэширование DNS внутри nginx
@@ -219,6 +219,62 @@ export LOKI_HOST=… MINIO_ENDPOINT=… MINIO_ACCESS_KEY=… MINIO_SECRET_KEY=�
 docker stack deploy -c deploy/swarm/notes-stack.yml --with-registry-auth --prune notes
 ```
 
+## Чистка образов
+
+Каждый деплой оставляет на ноде **два** новых образа (core и client), а в
+реестре — два новых тега. Джоб `deploy` подчищает это сам, **после** успешного
+smoke-теста: если деплой упал, старые образы остаются на месте и откатываться
+есть на что.
+
+### На ноде — всегда
+
+Шаг `Clean up old images on the swarm node` проходит по обоим репозиториям
+(`CR_IMAGE_CORE` и `CR_IMAGE_CLIENT`) и в каждом оставляет запущенный образ
+плюс `keep_images` самых свежих (по умолчанию 3) — чтобы
+`docker service rollback` не ходил в реестр.
+
+Скоуп по репозиторию здесь принципиален. На этой же ВМ живут стеки `rain` и
+`ntlstl`, а swarm тянет образы **по digest** — из-за этого предыдущие образы
+всех стеков лежат без тегов и выглядят как dangling. Обычный
+`docker image prune` снёс бы вместе со своими и их цели для отката. По той же
+причине запущенный образ определяется через контейнер
+(`docker inspect --format '{{.Image}}'`), а не через
+`docker ps --format '{{.Image}}'`: последний печатает тег, который на ноде уже
+не резолвится.
+
+Соответствие «репозиторий → сервис» задано в шаге явно: `CR_IMAGE_CORE` →
+`notes_notes-core`, `CR_IMAGE_CLIENT` → `notes_client`. Переименуете сервис в
+`notes-stack.yml` — поправьте и здесь, иначе шаг решит, что запущенного образа
+нет, и оставит только `keep_images` свежих (после отката на более старый образ
+это удалит как раз тот, что сейчас работает).
+
+### В реестре — по запросу
+
+Шаг `Clean up old tags in Container Registry` включается только вручную:
+`Actions → Deploy to Yandex Cloud → Run workflow → Also delete old tags…`. Он
+чистит оба репозитория, оставляя `keep_images` самых свежих образов, а также
+всё, что помечено `latest` или тегом текущего деплоя.
+
+По умолчанию выключен намеренно: удаление тега необратимо и убирает цель для
+отката, которой на ноде может уже не быть. Шаг помечен
+`continue-on-error: true` — сервисному аккаунту нужна роль
+`container-registry.images.deleter`, и без неё деплой не должен краснеть.
+
+Флаг `--repository-name` у `yc` принимает `<registry-id>/<image>` **без хоста**:
+с `cr.yandex/…` он падает с `Registry cr.yandex not found`.
+
+**Лучшая альтернатива** — политика жизненного цикла на самом реестре
+(`yc container repository lifecycle-policy create`): retention считается на
+стороне Yandex Cloud, не зависит от того, дошёл ли деплой до последнего шага, и
+не требует прав на удаление у CI. Если чистка реестра нужна регулярно — заводите
+политику, а шаг в CI оставьте для разовых уборок.
+
+Посмотреть, сколько занято сейчас:
+
+```bash
+DOCKER_HOST=ssh://<user>@<vm> docker system df
+```
+
 ## Ограничения
 
 - **Ingress swarm слушает только IPv4.** Compose публиковал порты в обе
@@ -245,7 +301,7 @@ docker stack deploy -c deploy/swarm/notes-stack.yml --with-registry-auth --prune
   `VITE_SITE_URL` (build-args в `deploy.yml`). Поменять адрес API, публичный
   origin или Yandex client id **без пересборки** образа нельзя — переменные
   окружения в стеке на это не влияют.
-- Пререндер для соц-скрейперов держится на связке двух образов: `client/nginx`
+- Пререндер для соц-скрейперов держится на связке двух образов: `apps/client/nginx`
   по User-Agent переписывает запросы ботов на `/__prerender…`, а отвечает на них
   `core` модулем `src/prerender/`. Если модуль удалить — превью в мессенджерах
   начнут отдавать 404, при том что для людей и поисковиков ничего не сломается,

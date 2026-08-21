@@ -11,7 +11,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: core
+        working-directory: apps/core
 
     steps:
       - uses: actions/checkout@v4
@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: core/package-lock.json
+          cache-dependency-path: apps/core/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -32,7 +32,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: core-dist
-          path: core/dist
+          path: apps/core/dist
           retention-days: 1
 
   build-client:
@@ -41,7 +41,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: client
+        working-directory: apps/client
 
     steps:
       - uses: actions/checkout@v4
@@ -50,7 +50,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: client/package-lock.json
+          cache-dependency-path: apps/client/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -65,7 +65,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: client-dist
-          path: client/dist
+          path: apps/client/dist
           retention-days: 1
 
   docker:
@@ -82,7 +82,7 @@ jobs:
       - name: Build core image
         uses: docker/build-push-action@v6
         with:
-          context: ./core
+          context: ./apps/core
           push: false
           tags: lite-core:${{ github.sha }}
           cache-from: type=gha
@@ -91,7 +91,7 @@ jobs:
       - name: Build client image
         uses: docker/build-push-action@v6
         with:
-          context: ./client
+          context: ./apps/client
           push: false
           tags: lite-client:${{ github.sha }}
           build-args: |
